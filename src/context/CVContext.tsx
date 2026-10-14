@@ -23,6 +23,8 @@ export const CVProvider = ({ children }: { children: ReactNode }) => {
       phone: "",
       location: "",
       summary: "",
+      photoUri: "",
+      hBlandas: "",
     },
     experiences: [],
     education: [],

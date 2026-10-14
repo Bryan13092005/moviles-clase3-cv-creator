@@ -7,13 +7,25 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+export const TuTiColors = {
+  blue: '#0B13A5',
+  yellow: '#FFF000',
+  white: '#FFFFFF',
+  background: '#F4F5F8',
+  border: '#E2E8F0',
+  text: '#172033',
+  muted: '#64748B',
+  success: '#22C55E',
+  danger: '#DC2626',
+} as const;
+
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: TuTiColors.text,
+    background: TuTiColors.background,
+    backgroundElement: TuTiColors.white,
+    backgroundSelected: '#EEF0FF',
+    textSecondary: TuTiColors.muted,
   },
   dark: {
     text: '#ffffff',

@@ -1,5 +1,6 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, ViewStyle } from "react-native";
+import { TuTiColors } from "@/constants/theme";
 
 interface NavigationButtonProps {
     title: string;
@@ -31,29 +32,32 @@ export const NavigationButton = ({
 
 const styles = StyleSheet.create({
     button: {
-        padding: 16,
-        borderRadius: 8,
+        minHeight: 54,
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: TuTiColors.yellow,
         alignItems: "center",
         justifyContent: "center",
         marginVertical: 8,
     },
     primary: {
-        backgroundColor: "#3498db",
+        backgroundColor: TuTiColors.blue,
     },
     secondary: {
         backgroundColor: "transparent",
-        borderWidth: 2,
-        borderColor: "#3498db",
+        borderColor: TuTiColors.blue,
     },
     danger: {
-        backgroundColor: "#e74c3c",
+        backgroundColor: TuTiColors.danger,
     },
     text: {
-        color: "#fff",
+        color: TuTiColors.white,
         fontSize: 16,
-        fontWeight: "600",
+        fontWeight: "700",
     },
     textSecondary: {
-        color: "#3498db",
+        color: TuTiColors.blue,
     },
 });

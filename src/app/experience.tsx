@@ -3,21 +3,24 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Alert,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { InputField } from "../components/InputField";
 import { NavigationButton } from "../components/NavigationButton";
 import { useCVContext } from "../context/CVContext";
 import { Experience } from "../types/cv.types";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { TuTiColors } from "../constants/theme";
 
 export default function ExperienceScreen() {
   const router = useRouter();
+  type DateField = "startDate" | "endDate";
   const { cvData, addExperience, deleteExperience } = useCVContext();
-
+  const [activeDatePicker, setActiveDatePicker] = useState<DateField | null>(null);
   const [formData, setFormData] = useState<Omit<Experience, "id">>({
     company: "",
     position: "",
@@ -27,10 +30,10 @@ export default function ExperienceScreen() {
   });
 
   const handleAdd = () => {
-    if (!formData.company || !formData.position || !formData.startDate) {
+    if (!formData.company.trim() || !formData.position.trim() || !formData.startDate.trim()) {
       Alert.alert(
-        "Error",
-        "Por favor completa al menos empresa, cargo y fecha de inicio"
+        "Información incompleta",
+        "Completa empresa, cargo y fecha de inicio."
       );
       return;
     }
@@ -51,11 +54,11 @@ export default function ExperienceScreen() {
       description: "",
     });
 
-    Alert.alert("Éxito", "Experiencia agregada correctamente");
+    Alert.alert("Éxito", "Experiencia agregada correctamente.");
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Confirmar", "¿Estás seguro de eliminar esta experiencia?", [
+    Alert.alert("Eliminar experiencia", "¿Estás seguro de eliminar esta experiencia?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
@@ -65,92 +68,176 @@ export default function ExperienceScreen() {
     ]);
   };
 
+
+  const formatDate = (date: Date) => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}/${date.getFullYear()}`;
+  };
+
+  const parseDate = (value: string) => {
+    if (!value) return new Date();
+    const [day, month, year] = value.split("/").map(Number);
+    return day && month && year ? new Date(year, month - 1, day) : new Date();
+  };
+
+  const renderDatePicker = (field: DateField) => {
+    if (Platform.OS === "web" || activeDatePicker !== field) {
+      return null;
+    }
+
+    return (
+      <View>
+        <DateTimePicker
+          value={parseDate(formData[field])}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={(_, selectedDate) => {
+            if (selectedDate) {
+              setFormData((current) => ({
+                ...current,
+                [field]: formatDate(selectedDate),
+              }));
+            }
+
+            if (Platform.OS === "android") {
+              setActiveDatePicker(null);
+            }
+          }}
+        />
+        {Platform.OS === "ios" && (
+          <TouchableOpacity
+            style={styles.datePickerDone}
+            onPress={() => setActiveDatePicker(null)}
+          >
+            <Text style={styles.datePickerDoneText}>Listo</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   return (
     <KeyboardAwareScrollView
-          style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-          enableOnAndroid={true}
-          extraScrollHeight={50}
-          keyboardShouldPersistTaps="handled"
-        >
-    <ScrollView>
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Agregar Nueva Experiencia</Text>
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      enableOnAndroid
+      extraScrollHeight={50}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.intro}>
+        <View style={styles.accentLine} />
+        <Text style={styles.title}>Tu experiencia cuenta</Text>
+        <Text style={styles.description}>
+          Añade tus trabajos y enfócate en los logros que mejor representan tu talento.
+        </Text>
+      </View>
 
+      <View style={styles.formCard}>
+        <Text style={styles.cardHeading}>Nueva experiencia</Text>
         <InputField
           label="Empresa *"
           placeholder="Nombre de la empresa"
           value={formData.company}
           onChangeText={(text) => setFormData({ ...formData, company: text })}
         />
-
         <InputField
           label="Cargo *"
           placeholder="Tu posición"
           value={formData.position}
           onChangeText={(text) => setFormData({ ...formData, position: text })}
         />
-
-        <InputField
-          label="Fecha de Inicio *"
-          placeholder="Ej: Enero 2020"
-          value={formData.startDate}
-          onChangeText={(text) => setFormData({ ...formData, startDate: text })}
-        />
-
-        <InputField
-          label="Fecha de Fin"
-          placeholder="Ej: Diciembre 2023 o 'Actual'"
-          value={formData.endDate}
-          onChangeText={(text) => setFormData({ ...formData, endDate: text })}
-        />
-
+        {Platform.OS === "web" ? (
+          <InputField
+            label="Fecha de inicio *"
+            placeholder="DD/MM/AAAA"
+            value={formData.startDate}
+            onChangeText={(text) => setFormData({ ...formData, startDate: text })}
+          />
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveDatePicker("startDate")}
+          >
+            <View pointerEvents="none">
+              <InputField
+                label="Fecha de inicio *"
+                placeholder="Selecciona una fecha"
+                value={formData.startDate}
+                editable={false}
+              />
+            </View>
+          </TouchableOpacity>
+        )}
+        {renderDatePicker("startDate")}
+        {Platform.OS === "web" ? (
+          <InputField
+            label="Fecha de fin"
+            placeholder="DD/MM/AAAA o Actual"
+            value={formData.endDate}
+            onChangeText={(text) => setFormData({ ...formData, endDate: text })}
+          />
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveDatePicker("endDate")}
+          >
+            <View pointerEvents="none">
+              <InputField
+                label="Fecha de fin"
+                placeholder="Selecciona una fecha (opcional)"
+                value={formData.endDate}
+                editable={false}
+              />
+            </View>
+          </TouchableOpacity>
+        )}
+        {renderDatePicker("endDate")}
         <InputField
           label="Descripción"
-          placeholder="Describe tus responsabilidades y logros..."
+          placeholder="Describe tus responsabilidades y logros."
           value={formData.description}
-          onChangeText={(text) =>
-            setFormData({ ...formData, description: text })
-          }
+          onChangeText={(text) => setFormData({ ...formData, description: text })}
           multiline
           numberOfLines={4}
-          style={{ height: 100, textAlignVertical: "top", borderWidth: 1,borderColor: "#ddd", borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: "#fff", }}
+          style={styles.multilineInput}
         />
-
-        <NavigationButton title="Agregar Experiencia" onPress={handleAdd} />
-
-        {cvData.experiences.length > 0 && (
-          <>
-            <Text style={styles.listTitle}>Experiencias Agregadas</Text>
-            {cvData.experiences.map((exp) => (
-              <View key={exp.id} style={styles.card}>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{exp.position}</Text>
-                  <Text style={styles.cardSubtitle}>{exp.company}</Text>
-                  <Text style={styles.cardDate}>
-                    {exp.startDate} - {exp.endDate || "Actual"}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(exp.id)}
-                >
-                  <Text style={styles.deleteButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </>
-        )}
-        <View style={{paddingBottom:50}}>
-        <NavigationButton
-          title="Volver"
-          onPress={() => router.back()}
-          variant="secondary"
-          style={{ marginTop: 16 }}
-        />
-        </View>
+        <NavigationButton title="Agregar experiencia" onPress={handleAdd} />
       </View>
-    </ScrollView>
+
+      {cvData.experiences.length > 0 && (
+        <View style={styles.listSection}>
+          <Text style={styles.listTitle}>Experiencias agregadas</Text>
+          {cvData.experiences.map((exp) => (
+            <View key={exp.id} style={styles.experienceCard}>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{exp.position}</Text>
+                <Text style={styles.cardSubtitle}>{exp.company}</Text>
+                <Text style={styles.cardDate}>
+                  {exp.startDate} - {exp.endDate || "Actual"}
+                </Text>
+                {exp.description ? (
+                  <Text style={styles.cardDescription}>{exp.description}</Text>
+                ) : null}
+              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Eliminar experiencia en ${exp.company}`}
+                style={styles.deleteButton}
+                onPress={() => handleDelete(exp.id)}
+              >
+                <Text style={styles.deleteButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+      <NavigationButton
+        title="Volver"
+        onPress={() => router.back()}
+        variant="secondary"
+        style={styles.backButton}
+      />
     </KeyboardAwareScrollView>
   );
 }
@@ -158,34 +245,87 @@ export default function ExperienceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: TuTiColors.background,
   },
-  content: {
+  contentContainer: {
     padding: 20,
+    paddingBottom: 36,
+    maxWidth: 640,
+    width: "100%",
+    alignSelf: "center",
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#2c3e50",
+  intro: {
+    backgroundColor: TuTiColors.white,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 18,
+    padding: 18,
+    elevation: 2,
+    shadowColor: "#172033",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  accentLine: {
+    height: 5,
+    backgroundColor: TuTiColors.yellow,
+    marginHorizontal: -18,
+    marginTop: -18,
     marginBottom: 16,
   },
-  listTitle: {
+  title: {
+    color: TuTiColors.blue,
+    fontSize: 23,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  description: {
+    color: TuTiColors.muted,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  formCard: {
+    backgroundColor: TuTiColors.white,
+    borderRadius: 20,
+    padding: 18,
+    elevation: 2,
+    shadowColor: "#172033",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  cardHeading: {
+    color: TuTiColors.blue,
     fontSize: 18,
-    fontWeight: "600",
-    color: "#2c3e50",
+    fontWeight: "800",
+    marginBottom: 16,
+  },
+  multilineInput: {
+    minHeight: 112,
+    textAlignVertical: "top",
+  },
+  listSection: {
     marginTop: 24,
+  },
+  listTitle: {
+    color: TuTiColors.blue,
+    fontSize: 19,
+    fontWeight: "800",
     marginBottom: 12,
   },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
+  experienceCard: {
+    backgroundColor: TuTiColors.white,
+    borderLeftWidth: 4,
+    borderLeftColor: TuTiColors.blue,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     flexDirection: "row",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    alignItems: "flex-start",
+    shadowColor: "#172033",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
   },
   cardContent: {
@@ -193,33 +333,53 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#2c3e50",
-    marginBottom: 4,
+    fontWeight: "800",
+    color: TuTiColors.text,
+    marginBottom: 3,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: "#7f8c8d",
+    color: TuTiColors.blue,
+    fontWeight: "600",
     marginBottom: 4,
   },
   cardDate: {
     fontSize: 12,
-    color: "#95a5a6",
+    color: TuTiColors.muted,
+  },
+  cardDescription: {
+    fontSize: 13,
+    color: TuTiColors.text,
+    lineHeight: 19,
+    marginTop: 8,
   },
   deleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#e74c3c",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: TuTiColors.danger,
     justifyContent: "center",
     alignItems: "center",
+    marginLeft: 12,
   },
   deleteButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: TuTiColors.white,
+    fontSize: 24,
+    lineHeight: 26,
+    fontWeight: "500",
   },
-  contentContainer: {
-    paddingBottom:50
+  datePickerDone: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: TuTiColors.blue,
+  },
+  datePickerDoneText: {
+    color: TuTiColors.white,
+    fontWeight: "700",
+  },
+  backButton: {
+    marginTop: 16,
   },
 });

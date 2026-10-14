@@ -1,18 +1,17 @@
-// app/education.tsx
-
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  TouchableOpacity,
-} from "react-native";
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { InputField } from "../components/InputField";
 import { NavigationButton } from "../components/NavigationButton";
 import { useCVContext } from "../context/CVContext";
+import { TuTiColors } from "../constants/theme";
 import { Education } from "../types/cv.types";
 
 export default function EducationScreen() {
@@ -27,31 +26,26 @@ export default function EducationScreen() {
   });
 
   const handleAdd = () => {
-    if (!formData.institution || !formData.degree) {
-      Alert.alert("Error", "Por favor completa al menos institución y título");
+    if (!formData.institution.trim() || !formData.degree.trim()) {
+      Alert.alert("Información incompleta", "Completa al menos la institución y el título.");
       return;
     }
 
-    const newEducation: Education = {
+    addEducation({
       id: Date.now().toString(),
       ...formData,
-    };
-
-    addEducation(newEducation);
-
-    // Limpiar formulario
+    });
     setFormData({
       institution: "",
       degree: "",
       field: "",
       graduationYear: "",
     });
-
-    Alert.alert("Éxito", "Educación agregada correctamente");
+    Alert.alert("Éxito", "Educación agregada correctamente.");
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Confirmar", "¿Estás seguro de eliminar esta educación?", [
+    Alert.alert("Eliminar educación", "¿Estás seguro de eliminar esta educación?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
@@ -62,74 +56,80 @@ export default function EducationScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Agregar Nueva Educación</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.intro}>
+        <View style={styles.accentLine} />
+        <Text style={styles.title}>Tu formación te impulsa</Text>
+        <Text style={styles.description}>
+          Comparte los estudios y conocimientos que respaldan tu camino profesional.
+        </Text>
+      </View>
 
+      <View style={styles.formCard}>
+        <Text style={styles.cardHeading}>Nueva formación</Text>
         <InputField
           label="Institución *"
-          placeholder="Nombre de la universidad/institución"
+          placeholder="Nombre de la universidad o institución"
           value={formData.institution}
-          onChangeText={(text) =>
-            setFormData({ ...formData, institution: text })
-          }
+          onChangeText={(text) => setFormData({ ...formData, institution: text })}
         />
-
         <InputField
-          label="Título/Grado *"
-          placeholder="Ej: Licenciatura, Maestría"
+          label="Título o grado *"
+          placeholder="Ej. Licenciatura, Maestría"
           value={formData.degree}
           onChangeText={(text) => setFormData({ ...formData, degree: text })}
         />
-
         <InputField
-          label="Área de Estudio"
-          placeholder="Ej: Ingeniería en Sistemas"
+          label="Área de estudio"
+          placeholder="Ej. Ingeniería en Sistemas"
           value={formData.field}
           onChangeText={(text) => setFormData({ ...formData, field: text })}
         />
-
         <InputField
-          label="Año de Graduación"
-          placeholder="Ej: 2023"
+          label="Año de graduación"
+          placeholder="Ej. 2023"
           value={formData.graduationYear}
-          onChangeText={(text) =>
-            setFormData({ ...formData, graduationYear: text })
-          }
+          onChangeText={(text) => setFormData({ ...formData, graduationYear: text })}
           keyboardType="numeric"
         />
-
-        <NavigationButton title="Agregar Educación" onPress={handleAdd} />
-
-        {cvData.education.length > 0 && (
-          <>
-            <Text style={styles.listTitle}>Educación Agregada</Text>
-            {cvData.education.map((edu) => (
-              <View key={edu.id} style={styles.card}>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{edu.degree}</Text>
-                  <Text style={styles.cardSubtitle}>{edu.field}</Text>
-                  <Text style={styles.cardInstitution}>{edu.institution}</Text>
-                  <Text style={styles.cardDate}>{edu.graduationYear}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(edu.id)}
-                >
-                  <Text style={styles.deleteButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </>
-        )}
-
-        <NavigationButton
-          title="Volver"
-          onPress={() => router.back()}
-          variant="secondary"
-          style={{ marginTop: 16 }}
-        />
+        <NavigationButton title="Agregar educación" onPress={handleAdd} />
       </View>
+
+      {cvData.education.length > 0 && (
+        <View style={styles.listSection}>
+          <Text style={styles.listTitle}>Formación agregada</Text>
+          {cvData.education.map((edu) => (
+            <View key={edu.id} style={styles.educationCard}>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{edu.degree}</Text>
+                {edu.field ? <Text style={styles.cardSubtitle}>{edu.field}</Text> : null}
+                <Text style={styles.cardInstitution}>{edu.institution}</Text>
+                {edu.graduationYear ? (
+                  <Text style={styles.cardDate}>{edu.graduationYear}</Text>
+                ) : null}
+              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Eliminar formación de ${edu.institution}`}
+                style={styles.deleteButton}
+                onPress={() => handleDelete(edu.id)}
+              >
+                <Text style={styles.deleteButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+      <NavigationButton
+        title="Volver"
+        onPress={() => router.back()}
+        variant="secondary"
+        style={styles.backButton}
+      />
     </ScrollView>
   );
 }
@@ -137,34 +137,83 @@ export default function EducationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: TuTiColors.background,
   },
-  content: {
+  contentContainer: {
     padding: 20,
+    paddingBottom: 36,
+    maxWidth: 640,
+    width: "100%",
+    alignSelf: "center",
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#2c3e50",
+  intro: {
+    backgroundColor: TuTiColors.white,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 18,
+    padding: 18,
+    elevation: 2,
+    shadowColor: "#172033",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  accentLine: {
+    height: 5,
+    backgroundColor: TuTiColors.yellow,
+    marginHorizontal: -18,
+    marginTop: -18,
     marginBottom: 16,
   },
-  listTitle: {
+  title: {
+    color: TuTiColors.blue,
+    fontSize: 23,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  description: {
+    color: TuTiColors.muted,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  formCard: {
+    backgroundColor: TuTiColors.white,
+    borderRadius: 20,
+    padding: 18,
+    elevation: 2,
+    shadowColor: "#172033",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  cardHeading: {
+    color: TuTiColors.blue,
     fontSize: 18,
-    fontWeight: "600",
-    color: "#2c3e50",
+    fontWeight: "800",
+    marginBottom: 16,
+  },
+  listSection: {
     marginTop: 24,
+  },
+  listTitle: {
+    color: TuTiColors.blue,
+    fontSize: 19,
+    fontWeight: "800",
     marginBottom: 12,
   },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
+  educationCard: {
+    backgroundColor: TuTiColors.white,
+    borderLeftWidth: 4,
+    borderLeftColor: TuTiColors.blue,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     flexDirection: "row",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    alignItems: "flex-start",
+    shadowColor: "#172033",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
   },
   cardContent: {
@@ -172,35 +221,41 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#2c3e50",
-    marginBottom: 4,
+    fontWeight: "800",
+    color: TuTiColors.text,
+    marginBottom: 3,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: "#7f8c8d",
+    color: TuTiColors.blue,
+    fontWeight: "600",
     marginBottom: 4,
   },
   cardInstitution: {
-    fontSize: 14,
-    color: "#95a5a6",
-    marginBottom: 2,
+    fontSize: 13,
+    color: TuTiColors.muted,
   },
   cardDate: {
     fontSize: 12,
-    color: "#95a5a6",
+    color: TuTiColors.muted,
+    marginTop: 3,
   },
   deleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#e74c3c",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: TuTiColors.danger,
     justifyContent: "center",
     alignItems: "center",
+    marginLeft: 12,
   },
   deleteButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: TuTiColors.white,
+    fontSize: 24,
+    lineHeight: 26,
+    fontWeight: "500",
+  },
+  backButton: {
+    marginTop: 16,
   },
 });

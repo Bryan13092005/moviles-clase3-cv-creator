@@ -4,6 +4,8 @@ email: string;
 phone: string;
 location: string;
 summary: string;
+photoUri?: string;
+hBlandas?: string;
 }
 export interface Experience {
 id: string;

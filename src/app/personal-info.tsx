@@ -1,69 +1,163 @@
-import React, {useState, useEffect} from "react";
-import{View, StyleSheet,ScrollView,Alert} from 'react-native'
+import { useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { InputField } from "@/components/InputField";
 import { NavigationButton } from "@/components/NavigationButton";
 import { useCVContext } from "@/context/CVContext";
 import { PersonalInfo } from "@/types/cv.types";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { TuTiColors } from "@/constants/theme";
+import { SubirImage } from "@/components/subirImage";
 
-export default function  PersonalInfoScreen(){
-    const router=useRouter();
-    const {cvData,updatePersonalInfo}=useCVContext();
+export default function PersonalInfoScreen() {
+    const router = useRouter();
+    const { cvData, updatePersonalInfo } = useCVContext();
 
-    const [formData,setFormData]=useState<PersonalInfo>(cvData.personalInfo);
+    const [formData, setFormData] = useState<PersonalInfo>(cvData.personalInfo);
 
-    useEffect(()=>{
-        setFormData(cvData.personalInfo);
-    },[cvData.personalInfo])
-
-    const handleSave=()=>{
-        if(!formData.fullName || !formData.email){
-            Alert.alert("Error","Por favor ingresa tu nombre y correo");
+    const handleSave = () => {
+        if (!formData.fullName.trim() || !formData.email.trim()) {
+            Alert.alert("Información incompleta", "Por favor ingresa tu nombre y correo.");
             return;
         }
 
         updatePersonalInfo(formData);
-        Alert.alert("Éxito","Información guardada corectamnete",[{text:'OK',onPress:()=>{router.back()}}
+        Alert.alert("Éxito", "Información guardada correctamente.", [
+            { text: "Listo", onPress: () => router.back() },
         ]);
-    }
+    };
 
-    return(
+    return (
         <KeyboardAwareScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      enableOnAndroid={true}
-      extraScrollHeight={20}
-      keyboardShouldPersistTaps="handled"
-    >
-        <ScrollView contentContainerStyle={styles.container}>
-            <View>
-                <InputField label="Nombre Completo *" placeholder="Bryan Salvador" value={formData.fullName} onChangeText={(text)=>setFormData({...formData, fullName:text})}/>
-
-                <InputField label="Email *" placeholder="bryan.salvador@epn.edu.ec" value={formData.email} onChangeText={(text)=>setFormData({...formData, email:text})} keyboardType="email-address" autoCapitalize="none"/>
-
-                <InputField label="Telefono" placeholder="+593 0999999999" value={formData.phone} onChangeText={(text)=>setFormData({...formData, phone:text})} keyboardType="phone-pad"/>
-
-                <InputField label="Ubicación" placeholder="Solanda" value={formData.location} onChangeText={(text)=>setFormData({...formData, location:text})}/>
-
-                <InputField label="Resumen Profesional" placeholder="Describe en pocas palabras tu perfil profesional" value={formData.summary} onChangeText={(text)=>setFormData({...formData, summary:text})}
-                multiline numberOfLines={4} style={{ height:100,textAlignVertical:'top', borderWidth: 1,borderColor: "#ddd", borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: "#fff",}}/>
-
-                <NavigationButton title="Guardar Información Personal" onPress={handleSave}/>
-
-                <NavigationButton title="Cancelar" onPress={()=>{router.back();}} variant="secondary"/>
+            style={styles.container}
+            contentContainerStyle={styles.contentContainer}
+            enableOnAndroid
+            extraScrollHeight={20}
+            keyboardShouldPersistTaps="handled"
+        >
+            <View style={styles.intro}>
+                <View style={styles.accentLine} />
+                <Text style={styles.title}>Empecemos por ti</Text>
+                <Text style={styles.description}>
+                    Estos datos ayudarán a que las personas te conozcan y puedan contactarte.
+                </Text>
             </View>
-        </ScrollView>
+            <View style={styles.formCard}>
+                <SubirImage
+                    imageUri={formData.photoUri || null}
+                    onImageSelected={(uri) => setFormData({ ...formData, photoUri: uri })}
+                    onImageRemoved={() => setFormData({ ...formData, photoUri: "" })}
+                />
+
+                <InputField
+                    label="Nombre completo *"
+                    placeholder="Ej. Bryan Salvador"
+                    value={formData.fullName}
+                    onChangeText={(text) => setFormData({ ...formData, fullName: text })}
+                    autoCapitalize="words"
+                />
+                <InputField
+                    label="Correo electrónico *"
+                    placeholder="nombre@correo.com"
+                    value={formData.email}
+                    onChangeText={(text) => setFormData({ ...formData, email: text })}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                />
+                <InputField
+                    label="Teléfono"
+                    placeholder="+593 99 999 9999"
+                    value={formData.phone}
+                    onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                    keyboardType="phone-pad"
+                />
+                <InputField
+                    label="Ubicación"
+                    placeholder="Ciudad, sector"
+                    value={formData.location}
+                    onChangeText={(text) => setFormData({ ...formData, location: text })}
+                />
+                <InputField
+                    label="Resumen profesional"
+                    placeholder="Describe brevemente tu perfil, fortalezas y objetivos."
+                    value={formData.summary}
+                    onChangeText={(text) => setFormData({ ...formData, summary: text })}
+                    multiline
+                    numberOfLines={4}
+                    style={styles.multilineInput}
+                />
+
+                <InputField
+                    label="Habilidades blandas"
+                    placeholder="Describe tus habilidades blandas."
+                    value={formData.hBlandas}
+                    onChangeText={(text) => setFormData({ ...formData, hBlandas: text })}
+                    multiline
+                    numberOfLines={4}
+                    style={styles.multilineInput}
+                />
+                <NavigationButton title="Guardar información" onPress={handleSave} />
+                <NavigationButton title="Cancelar" onPress={() => router.back()} variant="secondary" />
+            </View>
         </KeyboardAwareScrollView>
     );
 }
 
-const styles=StyleSheet.create({
-    container:{
-        flex:1,
-        backgroundColor:'#f5f5f5',
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: TuTiColors.background,
     },
     contentContainer: {
-    padding: 20,
-  },
+        padding: 20,
+        paddingBottom: 36,
+        maxWidth: 640,
+        width: "100%",
+        alignSelf: "center",
+    },
+    intro: {
+        backgroundColor: TuTiColors.white,
+        borderRadius: 20,
+        overflow: "hidden",
+        marginBottom: 18,
+        padding: 18,
+        elevation: 2,
+        shadowColor: "#172033",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+    },
+    accentLine: {
+        height: 5,
+        backgroundColor: TuTiColors.yellow,
+        marginHorizontal: -18,
+        marginTop: -18,
+        marginBottom: 16,
+    },
+    title: {
+        color: TuTiColors.blue,
+        fontSize: 23,
+        fontWeight: "800",
+        marginBottom: 6,
+    },
+    description: {
+        color: TuTiColors.muted,
+        fontSize: 14,
+        lineHeight: 21,
+    },
+    formCard: {
+        backgroundColor: TuTiColors.white,
+        borderRadius: 20,
+        padding: 18,
+        elevation: 2,
+        shadowColor: "#172033",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+    },
+    multilineInput: {
+        minHeight: 112,
+        textAlignVertical: "top",
+    },
 });
