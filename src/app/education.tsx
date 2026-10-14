@@ -14,6 +14,26 @@ import { useCVContext } from "../context/CVContext";
 import { TuTiColors } from "../constants/theme";
 import { Education } from "../types/cv.types";
 
+type EducationField = "institution" | "degree" | "graduationYear";
+type EducationErrors = Partial<Record<EducationField, string>>;
+
+const validateEducationField = (field: EducationField, value: string) => {
+  if (field === "institution" && !value.trim()) {
+    return "La institución es obligatoria.";
+  }
+  if (field === "degree" && !value.trim()) {
+    return "El título o grado es obligatorio.";
+  }
+  if (field === "graduationYear" && value) {
+    const year = Number(value);
+    const maxYear = new Date().getFullYear() + 5;
+    if (!/^\d{4}$/.test(value) || year < 1950 || year > maxYear) {
+      return "Ingresa un año válido de 4 dígitos.";
+    }
+  }
+  return undefined;
+};
+
 export default function EducationScreen() {
   const router = useRouter();
   const { cvData, addEducation, deleteEducation } = useCVContext();
@@ -24,10 +44,31 @@ export default function EducationScreen() {
     field: "",
     graduationYear: "",
   });
+  const [errors, setErrors] = useState<EducationErrors>({});
+
+  const handleFieldChange = (field: EducationField, value: string) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+    const error = validateEducationField(field, value);
+    setErrors((current) => {
+      const next = { ...current };
+      if (error) next[field] = error;
+      else delete next[field];
+      return next;
+    });
+  };
 
   const handleAdd = () => {
-    if (!formData.institution.trim() || !formData.degree.trim()) {
-      Alert.alert("Información incompleta", "Completa al menos la institución y el título.");
+    const nextErrors: EducationErrors = {
+      institution: validateEducationField("institution", formData.institution),
+      degree: validateEducationField("degree", formData.degree),
+      graduationYear: validateEducationField("graduationYear", formData.graduationYear),
+    };
+    setErrors(nextErrors);
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      if (!formData.institution.trim() || !formData.degree.trim()) {
+        Alert.alert("Información incompleta", "Completa al menos la institución y el título.");
+      }
       return;
     }
 
@@ -41,6 +82,7 @@ export default function EducationScreen() {
       field: "",
       graduationYear: "",
     });
+    setErrors({});
     Alert.alert("Éxito", "Educación agregada correctamente.");
   };
 
@@ -75,13 +117,15 @@ export default function EducationScreen() {
           label="Institución *"
           placeholder="Nombre de la universidad o institución"
           value={formData.institution}
-          onChangeText={(text) => setFormData({ ...formData, institution: text })}
+          onChangeText={(text) => handleFieldChange("institution", text)}
+          error={errors.institution}
         />
         <InputField
           label="Título o grado *"
           placeholder="Ej. Licenciatura, Maestría"
           value={formData.degree}
-          onChangeText={(text) => setFormData({ ...formData, degree: text })}
+          onChangeText={(text) => handleFieldChange("degree", text)}
+          error={errors.degree}
         />
         <InputField
           label="Área de estudio"
@@ -91,9 +135,10 @@ export default function EducationScreen() {
         />
         <InputField
           label="Año de graduación"
-          placeholder="Ej. 2023"
+          placeholder={`Ej. ${new Date().getFullYear()}`}
           value={formData.graduationYear}
-          onChangeText={(text) => setFormData({ ...formData, graduationYear: text })}
+          onChangeText={(text) => handleFieldChange("graduationYear", text)}
+          error={errors.graduationYear}
           keyboardType="numeric"
         />
         <NavigationButton title="Agregar educación" onPress={handleAdd} />

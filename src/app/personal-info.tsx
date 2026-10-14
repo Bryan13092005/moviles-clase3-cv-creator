@@ -9,15 +9,61 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { TuTiColors } from "@/constants/theme";
 import { SubirImage } from "@/components/subirImage";
 
+type PersonalInfoField = "fullName" | "email" | "phone";
+type PersonalInfoErrors = Partial<Record<PersonalInfoField, string>>;
+
+const validateField = (field: PersonalInfoField, value: string) => {
+    if (field === "fullName") {
+        if (!value.trim()) return "El nombre es obligatorio.";
+        if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(value)) {
+            return "El nombre solo debe contener letras.";
+        }
+    }
+
+    if (field === "email") {
+        if (!value.trim()) return "El correo electrónico es obligatorio.";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            return "Ingresa un correo electrónico válido.";
+        }
+    }
+
+    if (field === "phone" && value && !/^\d{10}$/.test(value)) {
+        return "El teléfono debe tener exactamente 10 dígitos.";
+    }
+
+    return undefined;
+};
+
 export default function PersonalInfoScreen() {
     const router = useRouter();
     const { cvData, updatePersonalInfo } = useCVContext();
 
     const [formData, setFormData] = useState<PersonalInfo>(cvData.personalInfo);
+    const [errors, setErrors] = useState<PersonalInfoErrors>({});
+
+    const handleFieldChange = (field: PersonalInfoField, value: string) => {
+        setFormData((current) => ({ ...current, [field]: value }));
+        const error = validateField(field, value);
+        setErrors((current) => {
+            const next = { ...current };
+            if (error) next[field] = error;
+            else delete next[field];
+            return next;
+        });
+    };
 
     const handleSave = () => {
-        if (!formData.fullName.trim() || !formData.email.trim()) {
-            Alert.alert("Información incompleta", "Por favor ingresa tu nombre y correo.");
+        const nextErrors: PersonalInfoErrors = {
+            fullName: validateField("fullName", formData.fullName),
+            email: validateField("email", formData.email),
+            phone: validateField("phone", formData.phone),
+        };
+        setErrors(nextErrors);
+
+        if (Object.values(nextErrors).some(Boolean)) {
+            if (!formData.fullName.trim() || !formData.email.trim()) {
+                Alert.alert("Información incompleta", "Por favor ingresa tu nombre y correo.");
+            }
             return;
         }
 
@@ -53,23 +99,26 @@ export default function PersonalInfoScreen() {
                     label="Nombre completo *"
                     placeholder="Ej. Bryan Salvador"
                     value={formData.fullName}
-                    onChangeText={(text) => setFormData({ ...formData, fullName: text })}
+                    onChangeText={(text) => handleFieldChange("fullName", text)}
+                    error={errors.fullName}
                     autoCapitalize="words"
                 />
                 <InputField
                     label="Correo electrónico *"
                     placeholder="nombre@correo.com"
                     value={formData.email}
-                    onChangeText={(text) => setFormData({ ...formData, email: text })}
+                    onChangeText={(text) => handleFieldChange("email", text)}
+                    error={errors.email}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
                 />
                 <InputField
                     label="Teléfono"
-                    placeholder="+593 99 999 9999"
+                    placeholder="0999999999"
                     value={formData.phone}
-                    onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                    onChangeText={(text) => handleFieldChange("phone", text)}
+                    error={errors.phone}
                     keyboardType="phone-pad"
                 />
                 <InputField

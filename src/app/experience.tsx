@@ -16,6 +16,58 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { TuTiColors } from "../constants/theme";
 
+type ExperienceField = "company" | "position" | "startDate" | "endDate";
+type ExperienceErrors = Partial<Record<ExperienceField, string>>;
+type ExperienceFormData = Omit<Experience, "id">;
+
+const parseExperienceDate = (value: string) => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return null;
+
+  const [, dayText, monthText, yearText] = match;
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+};
+
+const getExperienceErrors = (formData: ExperienceFormData): ExperienceErrors => {
+  const errors: ExperienceErrors = {};
+  if (!formData.company.trim()) errors.company = "La empresa es obligatoria.";
+  if (!formData.position.trim()) errors.position = "El cargo es obligatorio.";
+
+  const startDate = formData.startDate.trim()
+    ? parseExperienceDate(formData.startDate)
+    : null;
+  const endDateText = formData.endDate.trim();
+  const isCurrentPosition = /^actual$/i.test(endDateText);
+  const endDate =
+    endDateText && !isCurrentPosition ? parseExperienceDate(endDateText) : null;
+
+  if (!formData.startDate.trim()) {
+    errors.startDate = "La fecha de inicio es obligatoria.";
+  } else if (!startDate) {
+    errors.startDate = "Ingresa una fecha válida (DD/MM/AAAA).";
+  }
+
+  if (endDateText && !isCurrentPosition && !endDate) {
+    errors.endDate = "Ingresa una fecha válida (DD/MM/AAAA).";
+  } else if (startDate && endDate && endDate < startDate) {
+    errors.endDate = "La fecha de fin no puede ser anterior a la fecha de inicio.";
+  }
+
+  return errors;
+};
+
 export default function ExperienceScreen() {
   const router = useRouter();
   type DateField = "startDate" | "endDate";
@@ -28,13 +80,41 @@ export default function ExperienceScreen() {
     endDate: "",
     description: "",
   });
+  const [errors, setErrors] = useState<ExperienceErrors>({});
+
+  const handleFieldChange = (field: ExperienceField, value: string) => {
+    const nextFormData = { ...formData, [field]: value };
+    setFormData(nextFormData);
+    const validation = getExperienceErrors(nextFormData);
+    const fieldsToUpdate: ExperienceField[] =
+      field === "startDate" ? ["startDate", "endDate"] : [field];
+
+    setErrors((current) => {
+      const next = { ...current };
+      fieldsToUpdate.forEach((fieldToUpdate) => {
+        const error = validation[fieldToUpdate];
+        if (error) next[fieldToUpdate] = error;
+        else delete next[fieldToUpdate];
+      });
+      return next;
+    });
+  };
 
   const handleAdd = () => {
-    if (!formData.company.trim() || !formData.position.trim() || !formData.startDate.trim()) {
-      Alert.alert(
-        "Información incompleta",
-        "Completa empresa, cargo y fecha de inicio."
-      );
+    const nextErrors = getExperienceErrors(formData);
+    setErrors(nextErrors);
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      if (
+        !formData.company.trim() ||
+        !formData.position.trim() ||
+        !formData.startDate.trim()
+      ) {
+        Alert.alert(
+          "Información incompleta",
+          "Completa empresa, cargo y fecha de inicio."
+        );
+      }
       return;
     }
 
@@ -53,6 +133,7 @@ export default function ExperienceScreen() {
       endDate: "",
       description: "",
     });
+    setErrors({});
 
     Alert.alert("Éxito", "Experiencia agregada correctamente.");
   };
@@ -76,9 +157,7 @@ export default function ExperienceScreen() {
   };
 
   const parseDate = (value: string) => {
-    if (!value) return new Date();
-    const [day, month, year] = value.split("/").map(Number);
-    return day && month && year ? new Date(year, month - 1, day) : new Date();
+    return parseExperienceDate(value) ?? new Date();
   };
 
   const renderDatePicker = (field: DateField) => {
@@ -94,10 +173,7 @@ export default function ExperienceScreen() {
           display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={(_, selectedDate) => {
             if (selectedDate) {
-              setFormData((current) => ({
-                ...current,
-                [field]: formatDate(selectedDate),
-              }));
+              handleFieldChange(field, formatDate(selectedDate));
             }
 
             if (Platform.OS === "android") {
@@ -139,20 +215,23 @@ export default function ExperienceScreen() {
           label="Empresa *"
           placeholder="Nombre de la empresa"
           value={formData.company}
-          onChangeText={(text) => setFormData({ ...formData, company: text })}
+          onChangeText={(text) => handleFieldChange("company", text)}
+          error={errors.company}
         />
         <InputField
           label="Cargo *"
           placeholder="Tu posición"
           value={formData.position}
-          onChangeText={(text) => setFormData({ ...formData, position: text })}
+          onChangeText={(text) => handleFieldChange("position", text)}
+          error={errors.position}
         />
         {Platform.OS === "web" ? (
           <InputField
             label="Fecha de inicio *"
             placeholder="DD/MM/AAAA"
             value={formData.startDate}
-            onChangeText={(text) => setFormData({ ...formData, startDate: text })}
+            onChangeText={(text) => handleFieldChange("startDate", text)}
+            error={errors.startDate}
           />
         ) : (
           <TouchableOpacity
@@ -165,6 +244,7 @@ export default function ExperienceScreen() {
                 placeholder="Selecciona una fecha"
                 value={formData.startDate}
                 editable={false}
+                error={errors.startDate}
               />
             </View>
           </TouchableOpacity>
@@ -175,7 +255,8 @@ export default function ExperienceScreen() {
             label="Fecha de fin"
             placeholder="DD/MM/AAAA o Actual"
             value={formData.endDate}
-            onChangeText={(text) => setFormData({ ...formData, endDate: text })}
+            onChangeText={(text) => handleFieldChange("endDate", text)}
+            error={errors.endDate}
           />
         ) : (
           <TouchableOpacity
@@ -188,6 +269,7 @@ export default function ExperienceScreen() {
                 placeholder="Selecciona una fecha (opcional)"
                 value={formData.endDate}
                 editable={false}
+                error={errors.endDate}
               />
             </View>
           </TouchableOpacity>
