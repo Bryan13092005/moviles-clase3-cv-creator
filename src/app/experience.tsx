@@ -6,7 +6,6 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
-  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { InputField } from "../components/InputField";
@@ -14,20 +13,6 @@ import { NavigationButton } from "../components/NavigationButton";
 import { useCVContext } from "../context/CVContext";
 import { Experience } from "../types/cv.types";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import DateTimePicker from '@react-native-community/datetimepicker';
-
-type DateField = "startDate" | "endDate";
-
-const formatDate = (date: Date) => {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${date.getFullYear()}`;
-};
-
-const parseDate = (value: string) => {
-  const [day, month, year] = value.split("/").map(Number);
-  return day && month && year ? new Date(year, month - 1, day) : new Date();
-};
 
 export default function ExperienceScreen() {
   const router = useRouter();
@@ -40,44 +25,6 @@ export default function ExperienceScreen() {
     endDate: "",
     description: "",
   });
-  const [activeDatePicker, setActiveDatePicker] = useState<DateField | null>(
-    null
-  );
-
-  const renderDatePicker = (field: DateField) => {
-    if (Platform.OS === "web" || activeDatePicker !== field) {
-      return null;
-    }
-
-    return (
-      <View>
-        <DateTimePicker
-          value={parseDate(formData[field])}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onValueChange={(_, selectedDate) => {
-            setFormData((current) => ({
-              ...current,
-              [field]: formatDate(selectedDate),
-            }));
-
-            if (Platform.OS === "android") {
-              setActiveDatePicker(null);
-            }
-          }}
-          onDismiss={() => setActiveDatePicker(null)}
-        />
-        {Platform.OS === "ios" && (
-          <TouchableOpacity
-            style={styles.datePickerDone}
-            onPress={() => setActiveDatePicker(null)}
-          >
-            <Text style={styles.datePickerDoneText}>Listo</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
 
   const handleAdd = () => {
     if (!formData.company || !formData.position || !formData.startDate) {
@@ -146,27 +93,17 @@ export default function ExperienceScreen() {
 
         <InputField
           label="Fecha de Inicio *"
-          placeholder="Selecciona una fecha"
+          placeholder="Ej: Enero 2020"
           value={formData.startDate}
-          onChangeText={(text) =>
-            setFormData({ ...formData, startDate: text })
-          }
-          editable={Platform.OS === "web"}
-          showSoftInputOnFocus={Platform.OS === "web"}
-          onPressIn={() => setActiveDatePicker("startDate")}
+          onChangeText={(text) => setFormData({ ...formData, startDate: text })}
         />
-        {renderDatePicker("startDate")}
 
         <InputField
           label="Fecha de Fin"
-          placeholder="Selecciona una fecha (opcional)"
+          placeholder="Ej: Diciembre 2023 o 'Actual'"
           value={formData.endDate}
           onChangeText={(text) => setFormData({ ...formData, endDate: text })}
-          editable={Platform.OS === "web"}
-          showSoftInputOnFocus={Platform.OS === "web"}
-          onPressIn={() => setActiveDatePicker("endDate")}
         />
-        {renderDatePicker("endDate")}
 
         <InputField
           label="Descripción"
@@ -284,15 +221,5 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom:50
-  },
-  datePickerDone: {
-    alignSelf: "flex-end",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  datePickerDoneText: {
-    color: "#2c3e50",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });
